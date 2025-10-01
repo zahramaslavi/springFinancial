@@ -1,0 +1,64 @@
+version: '3'
+services:
+  mongo:
+    restart: always
+    image: mongo:6.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    networks:
+      - app-network
+  dataGen:
+    build:
+      context: ./dataGenService
+    container_name: data-generation
+    restart: always
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./dataGenService:/usr/app
+      - /usr/app/node_modules
+    environment:
+      - MONGO_URL=${MONGO_URL}
+      - NODE_ENV=${NODE_ENV}
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+  dynamicFiltering:
+    build:
+      context: ./dynamicFilteringService
+    container_name: dynamic-filtering-service
+    restart: always
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./dynamicFilteringService:/usr/app
+      - /usr/app/node_modules
+    environment:
+      - MONGO_URL=${MONGO_URL}
+      - NODE_ENV=${NODE_ENV}
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+  front-end:
+    build: 
+      context: ./frontEnd
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontEnd:/usr/app
+      - /usr/app/node_modules
+    restart: always
+    depends_on:
+      - mongo
+      - dataGen
+      - dynamicFiltering
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
